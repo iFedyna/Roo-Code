@@ -1318,12 +1318,6 @@ export const ChatRowContent = ({
 				case "followup":
 					return (
 						<>
-							{title && (
-								<div style={headerStyle}>
-									{icon}
-									{title}
-								</div>
-							)}
 							<div style={{ paddingTop: 10, paddingBottom: 15 }}>
 								<Markdown
 									markdown={message.partial === true ? message?.text : followUpData?.question}

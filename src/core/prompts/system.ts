@@ -183,11 +183,6 @@ export const SYSTEM_PROMPT = async (
 			globalCustomInstructions || "",
 			cwd,
 			mode,
-			{
-				language: language ?? formatLanguage(vscode.env.language),
-				rooIgnoreInstructions,
-				settings,
-			},
 		)
 
 		// For file-based prompts, don't include the tool sections

@@ -1736,9 +1736,33 @@ export class Task extends EventEmitter<ClineEvents> {
 				// either use a tool or attempt_completion.
 				const didToolUse = this.assistantMessageContent.some((block) => block.type === "tool_use")
 
+				// Якщо АІ НЕ використав інструмент, ми ініціюємо діалог з користувачем.
 				if (!didToolUse) {
-					this.userMessageContent.push({ type: "text", text: formatResponse.noToolsUsed() })
-					this.consecutiveMistakeCount++
+					// 1. Запитуємо у користувача наступне повідомлення.
+					//    На цьому моменті бекенд зупиниться, а інтерфейс розблокується.
+					const { response, text, images } = await this.ask("followup")
+
+					// 2. Перевіряємо, чи користувач щось відповів.
+					if (response === "messageResponse" && (text || (images && images.length > 0))) {
+						// Показуємо відповідь користувача в чаті для зворотного зв'язку.
+						await this.say("user_feedback", text ?? "", images)
+
+						// 3. "Загортаємо" відповідь користувача так, ніби це результат роботи інструменту.
+						const userFollowupContent: Anthropic.Messages.ContentBlockParam[] = []
+						if (text) {
+							userFollowupContent.push({ type: "text", text: text })
+						}
+						if (images && images.length > 0) {
+							userFollowupContent.push(...formatResponse.imageBlocks(images))
+						}
+
+						// 4. Рекурсивно викликаємо самі себе з цим "результатом".
+						//    Система продовжить працювати, ніби нічого незвичайного не сталося.
+						return await this.recursivelyMakeClineRequests(userFollowupContent, false)
+					}
+
+					// Якщо користувач нічого не ввів, завершуємо цикл.
+					return true
 				}
 
 				const recDidEndLoop = await this.recursivelyMakeClineRequests(this.userMessageContent)
